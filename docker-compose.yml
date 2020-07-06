@@ -1,0 +1,58 @@
+version: '3.4'
+
+services:
+  webserver:
+    build:
+      context: ./docker/bin/php
+    container_name: php
+    restart: 'always'
+    ports:
+      - 80:80
+      - 443:443
+    links:
+      - mariadb
+      - sqlserver
+    volumes:
+      - ./www:/var/www/html
+      - ./docker/config/php:/usr/local/etc/php
+      - ./docker/config/vhosts:/etc/apache2/sites-enabled
+      - ./docker/logs/apache2:/var/log/apache2
+    depends_on:
+      - sqlserver
+      - mariadb
+    environment:
+      PMA_PORT: 8080
+  docker-node:
+    build: "./docker/bin/node"
+    container_name: 'docker-node'
+    environment:
+      NODE_ENV: development
+    ports:
+      - 3000:3000
+    volumes:
+      - .:/usr/src/app
+  mariadb:
+    build: "./docker/bin/mariadb"
+    container_name: 'mariadb'
+    restart: 'always'
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - ./docker/data/mysql:/var/lib/mysql
+      - ./docker/logs/mysql:/var/log/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MARIADB_DATABASE}
+      MYSQL_USER: ${MARIADB_USER}
+      MYSQL_PASSWORD: ${MARIADB_PASSWORD}
+  sqlserver:
+    build: "./docker/bin/sqlserver"
+    container_name: 'sqlserver'
+    hostname: 'sqlserver'
+    environment:
+      ACCEPT_EULA: Y
+      MSSQL_SA_PASSWORD: ${MSSQLDB_ROOT_PASSWORD}
+    ports:
+      - 1433:1433
+    volumes:
+      - ./docker/data/mssql:/var/opt/mssql
